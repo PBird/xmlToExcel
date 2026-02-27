@@ -1,14 +1,16 @@
-import { readFileSync, readdirSync, mkdirSync, existsSync } from 'fs';
-import { join, basename, extname } from 'path';
-import { XMLParser } from 'fast-xml-parser';
-import ExcelJS from 'exceljs';
+import { readFileSync, readdirSync, mkdirSync, existsSync } from "fs";
+import { join, basename, extname, dirname } from "path";
+import { fileURLToPath } from "url";
+import { execPath } from "process";
+import { XMLParser } from "fast-xml-parser";
+import ExcelJS from "exceljs";
 import {
   parseFaturaXml,
   faturaProductToExcelRow,
   getExcelHeaders,
   faturaHeaderDetailsToExcelRows,
-  FaturaParseResult
-} from './parsers/fatura-parser.js';
+  FaturaParseResult,
+} from "./parsers/fatura-parser.js";
 
 /**
  * Reads all XML files from a directory
@@ -17,7 +19,7 @@ import {
  */
 function readXmlFiles(directory: string): string[] {
   const files = readdirSync(directory);
-  return files.filter(file => extname(file).toLowerCase() === '.xml');
+  return files.filter((file) => extname(file).toLowerCase() === ".xml");
 }
 
 /**
@@ -26,14 +28,14 @@ function readXmlFiles(directory: string): string[] {
  * @returns Parsed data object
  */
 function parseXmlFile(filePath: string): any {
-  const xmlContent = readFileSync(filePath, 'utf-8');
+  const xmlContent = readFileSync(filePath, "utf-8");
   const parser = new XMLParser({
     ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    textNodeName: '#text',
+    attributeNamePrefix: "@_",
+    textNodeName: "#text",
     ignoreDeclaration: true,
     ignorePiTags: true,
-    allowBooleanAttributes: true
+    allowBooleanAttributes: true,
   });
 
   return parser.parse(xmlContent);
@@ -45,8 +47,8 @@ function parseXmlFile(filePath: string): any {
  * @returns 2D array of rows and columns
  */
 function convertToExcelData(data: any): any[][] {
-  if (!data || typeof data !== 'object') {
-    return [['No data']];
+  if (!data || typeof data !== "object") {
+    return [["No data"]];
   }
 
   const result: any[][] = [];
@@ -54,7 +56,7 @@ function convertToExcelData(data: any): any[][] {
   const rootKey = keys[0];
 
   if (!rootKey) {
-    return [['No data']];
+    return [["No data"]];
   }
 
   const rootData = data[rootKey];
@@ -62,7 +64,7 @@ function convertToExcelData(data: any): any[][] {
   // Handle array of items
   if (Array.isArray(rootData)) {
     if (rootData.length === 0) {
-      return [['No data']];
+      return [["No data"]];
     }
 
     // Get headers from first item
@@ -70,24 +72,24 @@ function convertToExcelData(data: any): any[][] {
     result.push(headers);
 
     // Add rows
-    rootData.forEach(item => {
-      const row = headers.map(key => {
+    rootData.forEach((item) => {
+      const row = headers.map((key) => {
         const value = item[key];
-        return typeof value === 'object' ? JSON.stringify(value) : value;
+        return typeof value === "object" ? JSON.stringify(value) : value;
       });
       result.push(row);
     });
-  } else if (typeof rootData === 'object') {
+  } else if (typeof rootData === "object") {
     // Handle single object
     const headers = Object.keys(rootData);
     result.push(headers);
-    const row = headers.map(key => {
+    const row = headers.map((key) => {
       const value = rootData[key];
-      return typeof value === 'object' ? JSON.stringify(value) : value;
+      return typeof value === "object" ? JSON.stringify(value) : value;
     });
     result.push(row);
   } else {
-    result.push(['Value']);
+    result.push(["Value"]);
     result.push([rootData]);
   }
 
@@ -100,7 +102,7 @@ function convertToExcelData(data: any): any[][] {
  * @returns True if it's a Fatura XML
  */
 function isFaturaXml(xmlContent: string): boolean {
-  return xmlContent.includes('<Invoices') && xmlContent.includes('<Invoice>');
+  return xmlContent.includes("<Invoices") && xmlContent.includes("<Invoice>");
 }
 
 /**
@@ -109,13 +111,17 @@ function isFaturaXml(xmlContent: string): boolean {
  * @param outputPath - Path to save the Excel file
  * @param sheetName - Name of the sheet
  */
-async function createFaturaExcelFile(data: FaturaParseResult, outputPath: string, sheetName: string = 'Fatura'): Promise<void> {
+async function createFaturaExcelFile(
+  data: FaturaParseResult,
+  outputPath: string,
+  sheetName: string = "Fatura",
+): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet(sheetName);
 
   // Add header details
   const headerRows = faturaHeaderDetailsToExcelRows(data.header);
-  headerRows.forEach(row => worksheet.addRow(row));
+  headerRows.forEach((row) => worksheet.addRow(row));
 
   // Add empty row
   worksheet.addRow([]);
@@ -125,15 +131,15 @@ async function createFaturaExcelFile(data: FaturaParseResult, outputPath: string
   const headerRow = worksheet.addRow(headers);
 
   // Style header row
-  headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+  headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
   headerRow.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: '4472C4' }
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "4472C4" },
   };
 
   // Add product rows
-  data.products.forEach(product => {
+  data.products.forEach((product) => {
     const row = faturaProductToExcelRow(product);
     worksheet.addRow(row);
   });
@@ -142,7 +148,7 @@ async function createFaturaExcelFile(data: FaturaParseResult, outputPath: string
   worksheet.columns.forEach((column, index) => {
     if (column.values) {
       const maxLength = Math.max(
-        ...column.values.map((value: any) => String(value).length)
+        ...column.values.map((value: any) => String(value).length),
       );
       column.width = Math.min(maxLength + 2, 50);
     }
@@ -157,11 +163,15 @@ async function createFaturaExcelFile(data: FaturaParseResult, outputPath: string
  * @param outputPath - Path to save the Excel file
  * @param sheetName - Name of the sheet
  */
-async function createGenericExcelFile(data: any[][], outputPath: string, sheetName: string = 'Sheet1'): Promise<void> {
+async function createGenericExcelFile(
+  data: any[][],
+  outputPath: string,
+  sheetName: string = "Sheet1",
+): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet(sheetName);
 
-  data.forEach(row => {
+  data.forEach((row) => {
     worksheet.addRow(row);
   });
 
@@ -173,10 +183,15 @@ async function createGenericExcelFile(data: any[][], outputPath: string, sheetNa
  * @param inputDir - Input directory containing XML files
  * @param outputDir - Output directory for Excel files
  */
-async function convertXmlToExcel(inputDir: string, outputDir: string): Promise<void> {
-  // Validate input directory
+async function convertXmlToExcel(
+  inputDir: string,
+  outputDir: string,
+): Promise<void> {
+  // Create input directory if it doesn't exist
+  console.log("inputDir : ", inputDir);
   if (!existsSync(inputDir)) {
-    throw new Error(`Input directory does not exist: ${inputDir}`);
+    console.log(`Creating input directory: ${inputDir}`);
+    mkdirSync(inputDir, { recursive: true });
   }
 
   // Create output directory if it doesn't exist
@@ -188,7 +203,7 @@ async function convertXmlToExcel(inputDir: string, outputDir: string): Promise<v
   const xmlFiles = readXmlFiles(inputDir);
 
   if (xmlFiles.length === 0) {
-    console.log('No XML files found in', inputDir);
+    console.log("No XML files found in", inputDir);
     return;
   }
 
@@ -198,39 +213,61 @@ async function convertXmlToExcel(inputDir: string, outputDir: string): Promise<v
   for (const xmlFile of xmlFiles) {
     try {
       const inputPath = join(inputDir, xmlFile);
-      const outputFileName = basename(xmlFile, '.xml') + '.xlsx';
+      const outputFileName = basename(xmlFile, ".xml") + ".xlsx";
       const outputPath = join(outputDir, outputFileName);
 
       console.log(`Processing: ${xmlFile}`);
 
       // Read XML content
-      const xmlContent = readFileSync(inputPath, 'utf-8');
+      const xmlContent = readFileSync(inputPath, "utf-8");
 
       // Check if it's a Fatura XML
       if (isFaturaXml(xmlContent)) {
-        console.log('  → Detected as Fatura XML');
+        console.log("  → Detected as Fatura XML");
         const faturaData = parseFaturaXml(xmlContent);
         console.log(`  → Found ${faturaData.products.length} product(s)`);
-        console.log(`  → Total: ${faturaData.header.genelToplam} ${faturaData.header.doviz}`);
-        await createFaturaExcelFile(faturaData, outputPath, basename(xmlFile, '.xml'));
+        console.log(
+          `  → Total: ${faturaData.header.genelToplam} ${faturaData.header.doviz}`,
+        );
+        await createFaturaExcelFile(
+          faturaData,
+          outputPath,
+          basename(xmlFile, ".xml"),
+        );
       } else {
-        console.log('  → Processing as generic XML');
+        console.log("  → Processing as generic XML");
         const parsedData = parseXmlFile(inputPath);
         const excelData = convertToExcelData(parsedData);
-        await createGenericExcelFile(excelData, outputPath, basename(xmlFile, '.xml'));
+        await createGenericExcelFile(
+          excelData,
+          outputPath,
+          basename(xmlFile, ".xml"),
+        );
       }
 
       console.log(`✓ Created: ${outputFileName}`);
     } catch (error) {
-      console.error(`✗ Error processing ${xmlFile}:`, error instanceof Error ? error.message : error);
+      console.error(
+        `✗ Error processing ${xmlFile}:`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 
-  console.log('\nConversion complete!');
+  console.log("\nConversion complete!");
 }
 
 // Run the conversion
-convertXmlToExcel('xmlDosyaları', 'excelDosyaları')
+// Use current working directory (where user runs the command)
+const appDir = dirname(process.execPath);
+const inputDir = join(appDir, "xmlDosyaları");
+const outputDir = join(appDir, "excelDosyaları");
+
+console.log(`Current directory: ${appDir}`);
+console.log(`Input directory: ${inputDir}`);
+console.log(`Output directory: ${outputDir}`);
+
+convertXmlToExcel(inputDir, outputDir)
   .catch((error) => {
     console.error('Fatal error:', error instanceof Error ? error.message : error);
     process.exit(1);
