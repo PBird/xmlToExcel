@@ -10,8 +10,8 @@ on:
     inputs:
       create_release:
         description: 'Create GitHub Release'
-        required: false
-        default: 'false'
+        required: false 
+        default: false
         type: boolean
 
 jobs:
