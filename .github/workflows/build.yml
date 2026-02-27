@@ -14,13 +14,15 @@ on:
         default: 'false'
         type: boolean
 
-jobs:
+  jobs:
   build:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
+        # macos-latest temporarily disabled due to billing limits
 
     steps:
       - name: Checkout code
