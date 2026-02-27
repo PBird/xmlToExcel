@@ -1,6 +1,6 @@
 {
   "name": "xml-to-excel-converter",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Converts XML files from xmlDosyaları directory to Excel files in excelDosyaları directory",
   "type": "module",
   "scripts": {
