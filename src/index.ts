@@ -1,7 +1,5 @@
 import { readFileSync, readdirSync, mkdirSync, existsSync } from "fs";
 import { join, basename, extname, dirname } from "path";
-import { fileURLToPath } from "url";
-import { execPath } from "process";
 import { XMLParser } from "fast-xml-parser";
 import ExcelJS from "exceljs";
 import {
