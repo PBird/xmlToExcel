@@ -14,7 +14,7 @@ on:
         default: 'false'
         type: boolean
 
-  jobs:
+jobs:
   build:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -22,7 +22,6 @@ on:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
-        # macos-latest temporarily disabled due to billing limits
 
     steps:
       - name: Checkout code
