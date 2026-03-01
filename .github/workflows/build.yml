@@ -44,30 +44,23 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
             bun build src/index.ts --compile --outfile dist/xml-to-excel
+            echo "OUTPUT_NAME=xml-to-excel-macos" >> $GITHUB_ENV
+            echo "BINARY_NAME=xml-to-excel" >> $GITHUB_ENV
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
             bun build src/index.ts --compile --outfile dist/xml-to-excel.exe
+            echo "OUTPUT_NAME=xml-to-excel.exe" >> $GITHUB_ENV
+            echo "BINARY_NAME=xml-to-excel.exe" >> $GITHUB_ENV
           else
             bun build src/index.ts --compile --outfile dist/xml-to-excel
-          fi
-
-      - name: Set output filename
-        shell: bash
-        run: |
-          if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            echo "OUTPUT_NAME=xml-to-excel-macos" >> $GITHUB_ENV
-          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
-            echo "OUTPUT_NAME=xml-to-excel.exe" >> $GITHUB_ENV
-          else
             echo "OUTPUT_NAME=xml-to-excel-linux" >> $GITHUB_ENV
+            echo "BINARY_NAME=xml-to-excel" >> $GITHUB_ENV
           fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.OUTPUT_NAME }}
-          path: |
-            dist/xml-to-excel
-            dist/xml-to-excel.exe
+          path: dist/${{ env.BINARY_NAME }}
 
   release:
     name: Create Release
@@ -91,9 +84,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ./artifacts/xml-to-excel-macos/**
-            ./artifacts/xml-to-excel.exe/**
-            ./artifacts/xml-to-excel-linux/**
+            ./artifacts/xml-to-excel-macos/xml-to-excel
+            ./artifacts/xml-to-excel.exe/xml-to-excel.exe
+            ./artifacts/xml-to-excel-linux/xml-to-excel
           draft: false
           prerelease: false
           generate_release_notes: true
