@@ -65,7 +65,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.OUTPUT_NAME }}
-          path: dist/xml-to-excel*
+          path: |
+            dist/xml-to-excel
+            dist/xml-to-excel.exe
 
   release:
     name: Create Release
@@ -89,9 +91,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ./artifacts/xml-to-excel-macos/*
-            ./artifacts/xml-to-excel.exe/*
-            ./artifacts/xml-to-excel-linux/*
+            ./artifacts/xml-to-excel-macos/**
+            ./artifacts/xml-to-excel.exe/**
+            ./artifacts/xml-to-excel-linux/**
           draft: false
           prerelease: false
           generate_release_notes: true
