@@ -18,6 +18,8 @@ export interface FaturaProduct {
   kdvOran: number;
   kdvTutari: number;
   toplamTutar: number;
+  barkod: string;
+  lot: string;
 }
 
 /**
@@ -104,6 +106,34 @@ function extractHeader(invoice: any): FaturaHeader {
 }
 
 /**
+ * Barkod ve LOT bilgisini Note alanından çıkarır
+ * @param note - Note alanı
+ * @returns { barkod, lot }
+ *
+ * Barkod: 6. segment (| ile ayrılmış, index 5)
+ * LOT: SERILOT= pattern içinde, eğer yoksa LOT da yoktur
+ */
+function extractBarcodeAndLot(note: any): { barkod: string; lot: string } {
+  let barkod = '';
+  let lot = '';
+
+  if (note && typeof note === 'string') {
+    const parts = note.split('|');
+    // Barkod 6. bölümde (index 5)
+    if (parts.length > 5) {
+      barkod = parts[5].trim();
+    }
+    // LOT bilgisi SERILOT= değerinde
+    const serilotMatch = note.match(/SERILOT=([^,]+)/);
+    if (serilotMatch && serilotMatch[1]) {
+      lot = serilotMatch[1].trim();
+    }
+  }
+
+  return { barkod, lot };
+}
+
+/**
  * Fatura ürün satırlarını çıkarır
  * @param invoice - Invoice objesi
  * @param faturaNo - Fatura numarası
@@ -135,6 +165,8 @@ function extractProductLine(line: any, faturaNo: string, faturaTarih: string, ge
   const taxTotal = line.TaxTotal || {};
   const taxSubTotals = taxTotal.TaxSubTotals || {};
 
+  const { barkod, lot } = extractBarcodeAndLot(line.Note);
+
   return {
     faturaNo,
     faturaTarih,
@@ -149,7 +181,9 @@ function extractProductLine(line: any, faturaNo: string, faturaTarih: string, ge
     kalemTutari: parseFloat(lineExtensionAmount.Amount || '0'),
     kdvOran: parseFloat(taxSubTotals.Percent || '0'),
     kdvTutari: parseFloat(taxTotal.TaxAmount?.Amount || '0'),
-    toplamTutar: genelToplam
+    toplamTutar: genelToplam,
+    barkod,
+    lot
   };
 }
 
@@ -172,7 +206,9 @@ export function faturaProductToExcelRow(product: FaturaProduct): any[] {
     product.birimFiyat,
     product.kalemTutari,
     product.kdvOran,
-    product.kdvTutari
+    product.kdvTutari,
+    product.barkod,
+    product.lot
   ];
 }
 
@@ -194,7 +230,9 @@ export function getExcelHeaders(): string[] {
     'Birim Fiyat',
     'Kalem Tutarı',
     'KDV %',
-    'KDV Tutarı'
+    'KDV Tutarı',
+    'Barkod',
+    'LOT'
   ];
 }
 
@@ -217,6 +255,8 @@ export function faturaHeaderToExcelRow(header: FaturaHeader): any[] {
     '',
     '',
     '',
+    '',
+    '',
     ''
   ];
 }
@@ -228,13 +268,13 @@ export function faturaHeaderToExcelRow(header: FaturaHeader): any[] {
  */
 export function faturaHeaderDetailsToExcelRows(header: FaturaHeader): any[][] {
   return [
-    ['Fatura No:', header.faturaNo, '', '', '', '', '', '', '', '', '', '', ''],
-    ['Tarih:', `${header.tarih} ${header.saat}`, '', '', '', '', '', '', '', '', '', '', ''],
-    ['VKN/TCKN:', header.vknTckn, '', '', '', '', '', '', '', '', '', '', ''],
-    ['Ünvan:', header.unvan, '', '', '', '', '', '', '', '', '', '', ''],
-    ['Adres:', header.adres, '', '', '', '', '', '', '', '', '', '', ''],
-    ['Matrah:', header.toplamMatrah, header.doviz, '', '', '', '', '', '', '', '', '', ''],
-    ['KDV:', header.toplamKdv, header.doviz, '', '', '', '', '', '', '', '', '', ''],
-    ['GENEL TOPLAM:', header.genelToplam, header.doviz, '', '', '', '', '', '', '', '', '', '']
+    ['Fatura No:', header.faturaNo, '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Tarih:', `${header.tarih} ${header.saat}`, '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['VKN/TCKN:', header.vknTckn, '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Ünvan:', header.unvan, '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Adres:', header.adres, '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Matrah:', header.toplamMatrah, header.doviz, '', '', '', '', '', '', '', '', '', '', ''],
+    ['KDV:', header.toplamKdv, header.doviz, '', '', '', '', '', '', '', '', '', '', ''],
+    ['GENEL TOPLAM:', header.genelToplam, header.doviz, '', '', '', '', '', '', '', '', '', '', '']
   ];
 }

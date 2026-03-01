@@ -256,8 +256,9 @@ async function convertXmlToExcel(
 }
 
 // Run the conversion
-// Use current working directory (where user runs the command)
-const appDir = dirname(process.execPath);
+// Detect environment: compiled executable vs development mode
+const isCompiled = !process.execPath.includes('/bun') && !process.execPath.includes('\\bun');
+const appDir = isCompiled ? dirname(process.execPath) : process.cwd();
 const inputDir = join(appDir, "xmlDosyaları");
 const outputDir = join(appDir, "excelDosyaları");
 
