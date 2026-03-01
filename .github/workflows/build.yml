@@ -43,18 +43,22 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            bun build src/index.ts --compile --outfile dist/xml-to-excel
+            bun build src/index.ts --compile --outfile dist/xml-to-excel-macos
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
-            bun build src/index.ts --compile --outfile dist/xml-to-excel.exe
+            bun build src/index.ts --compile --outfile dist/xml-to-excel-windows.exe
           else
-            bun build src/index.ts --compile --outfile dist/xml-to-excel
+            bun build src/index.ts --compile --outfile dist/xml-to-excel-linux
           fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: xml-to-excel-${{ matrix.os }}
-          path: dist/xml-to-excel*
+          path: |
+            dist/xml-to-excel-macos
+            dist/xml-to-excel-windows.exe
+            dist/xml-to-excel-linux
+          if-no-files-found: error
 
   release:
     name: Create Release
@@ -78,9 +82,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ./artifacts/xml-to-excel-macos-latest/xml-to-excel
-            ./artifacts/xml-to-excel-windows-latest/xml-to-excel.exe
-            ./artifacts/xml-to-excel-ubuntu-latest/xml-to-excel
+            ./artifacts/xml-to-excel-macos-latest/xml-to-excel-macos
+            ./artifacts/xml-to-excel-windows-latest/xml-to-excel-windows.exe
+            ./artifacts/xml-to-excel-ubuntu-latest/xml-to-excel-linux
           draft: false
           prerelease: false
           generate_release_notes: true
