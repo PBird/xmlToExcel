@@ -43,11 +43,11 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            bun run compile:mac
+            bun build src/index.ts --compile --outfile dist/xml-to-excel
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
-            bun run compile:win
+            bun build src/index.ts --compile --outfile dist/xml-to-excel.exe
           else
-            bun run compile:linux
+            bun build src/index.ts --compile --outfile dist/xml-to-excel
           fi
 
       - name: Set output filename
