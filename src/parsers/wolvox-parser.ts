@@ -15,6 +15,7 @@ export interface WolvoxProduct {
   birimFiyat: number;
   malHizmetTutari: number;
   kdvOrani: number;
+  lot: string;
 }
 
 /**
@@ -142,19 +143,33 @@ function extractWolvoxHeader(invoice: any): WolvoxHeader {
 }
 
 /**
- * Barkod bilgisini AdditionalItemIdentification alanından çıkarır
+ * Barkod ve LOT bilgisini AdditionalItemIdentification alanından çıkarır
  * @param additionalItemIdentification - AdditionalItemIdentification alanı
- * @returns Barkod string'i
+ * @returns { barkod, lot }
+ *
+ * Format: (UNO)8961101489472(LNO)300625(SNO)300625(URT)250630
+ * Barkod: (UNO) ve (LNO) arasında
+ * LOT: (LNO) ve (SNO) arasında
  */
-function extractBarcode(additionalItemIdentification: any): string {
+function extractBarcodeAndLot(additionalItemIdentification: any): { barkod: string; lot: string } {
+  let barkod = '';
+  let lot = '';
+
   if (additionalItemIdentification && typeof additionalItemIdentification === 'string') {
     // Barkod: (UNO) ve (LNO) arasında
     const barkodMatch = additionalItemIdentification.match(/\(UNO\)(.*?)\(LNO\)/);
     if (barkodMatch && barkodMatch[1]) {
-      return barkodMatch[1].trim();
+      barkod = barkodMatch[1].trim();
+    }
+
+    // LOT: (LNO) ve (SNO) arasında
+    const lotMatch = additionalItemIdentification.match(/\(LNO\)(.*?)\(SNO\)/);
+    if (lotMatch && lotMatch[1]) {
+      lot = lotMatch[1].trim();
     }
   }
-  return '';
+
+  return { barkod, lot };
 }
 
 /**
@@ -198,7 +213,7 @@ function extractWolvoxProductLine(line: any, faturaNo: string, tarih: string, si
   const taxTotal = line.TaxTotal || {};
   const taxSubTotals = taxTotal.TaxSubTotals || {};
 
-  const barkod = extractBarcode(item.AdditionalItemIdentification);
+  const { barkod, lot } = extractBarcodeAndLot(item.AdditionalItemIdentification);
   const stokAdi = toUpperAndNormalize(item.Name || '');
   const stokKodu = item.SellersItemIdentification || '';
   const urunMiktari = parseFloat(invoicedQuantity.Quantity || '0');
@@ -219,7 +234,8 @@ function extractWolvoxProductLine(line: any, faturaNo: string, tarih: string, si
     urunBirimi,
     birimFiyat,
     malHizmetTutari,
-    kdvOrani
+    kdvOrani,
+    lot
   };
 }
 
@@ -243,7 +259,7 @@ export function getWolvoxExcelHeaders(): string[] {
     'Marka', // L
     'Ürün Durumu', // M
     'KDV Oranı', // N
-    '', // O
+    'LOT', // O
     'İZLEME TİPİ', // P
     '', // Q
     '', // R
@@ -273,7 +289,7 @@ export function wolvoxProductToExcelRow(product: WolvoxProduct): any[] {
     '', // L: Marka (boş)
     1, // M: Ürün Durumu (1)
     product.kdvOrani, // N: KDV Oranı
-    '', // O
+    product.lot, // O: LOT
     '', // P: İZLEME TİPİ
     '', // Q
     '', // R
