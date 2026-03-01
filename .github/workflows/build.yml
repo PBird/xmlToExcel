@@ -25,7 +25,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout code
@@ -40,7 +40,15 @@ jobs:
         run: bun install
 
       - name: Build binary
-        run: bun run compile
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then
+            bun run compile:mac
+          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
+            bun run compile:win
+          else
+            bun run compile:linux
+          fi
 
       - name: Set output filename
         shell: bash
