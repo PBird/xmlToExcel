@@ -106,27 +106,29 @@ function extractHeader(invoice: any): FaturaHeader {
 }
 
 /**
- * Barkod ve LOT bilgisini Note alanından çıkarır
- * @param note - Note alanı
+ * Barkod ve LOT bilgisini AdditionalItemIdentification alanından çıkarır
+ * @param additionalItemIdentification - AdditionalItemIdentification alanı
  * @returns { barkod, lot }
  *
- * Barkod: 6. segment (| ile ayrılmış, index 5)
- * LOT: SERILOT= pattern içinde, eğer yoksa LOT da yoktur
+ * Format: (UNO)8961101489472(LNO)300625(SNO)300625(URT)250630
+ * Barkod: (UNO) ve (LNO) arasında
+ * LOT: (LNO) ve (SNO) arasında
  */
-function extractBarcodeAndLot(note: any): { barkod: string; lot: string } {
+function extractBarcodeAndLot(additionalItemIdentification: any): { barkod: string; lot: string } {
   let barkod = '';
   let lot = '';
 
-  if (note && typeof note === 'string') {
-    const parts = note.split('|');
-    // Barkod 6. bölümde (index 5)
-    if (parts.length > 5) {
-      barkod = parts[5].trim();
+  if (additionalItemIdentification && typeof additionalItemIdentification === 'string') {
+    // Barkod: (UNO) ve (LNO) arasında
+    const barkodMatch = additionalItemIdentification.match(/\(UNO\)(.*?)\(LNO\)/);
+    if (barkodMatch && barkodMatch[1]) {
+      barkod = barkodMatch[1].trim();
     }
-    // LOT bilgisi SERILOT= değerinde
-    const serilotMatch = note.match(/SERILOT=([^,]+)/);
-    if (serilotMatch && serilotMatch[1]) {
-      lot = serilotMatch[1].trim();
+
+    // LOT: (LNO) ve (SNO) arasında
+    const lotMatch = additionalItemIdentification.match(/\(LNO\)(.*?)\(SNO\)/);
+    if (lotMatch && lotMatch[1]) {
+      lot = lotMatch[1].trim();
     }
   }
 
@@ -165,7 +167,7 @@ function extractProductLine(line: any, faturaNo: string, faturaTarih: string, ge
   const taxTotal = line.TaxTotal || {};
   const taxSubTotals = taxTotal.TaxSubTotals || {};
 
-  const { barkod, lot } = extractBarcodeAndLot(line.Note);
+  const { barkod, lot } = extractBarcodeAndLot(item.AdditionalItemIdentification);
 
   return {
     faturaNo,
