@@ -227,11 +227,18 @@ async function convertXmlToExcel(
         console.log(
           `  → Total: ${faturaData.header.genelToplam} ${faturaData.header.doviz}`,
         );
+
+        // Generate output filename: {Ünvan}-{faturaNo}.xlsx
+        const unvanFirstWord = faturaData.header.unvan.split(' ')[0];
+        const faturaOutputFileName = `${unvanFirstWord}-${faturaData.header.faturaNo}.xlsx`;
+        const faturaOutputPath = join(outputDir, faturaOutputFileName);
+
         await createFaturaExcelFile(
           faturaData,
-          outputPath,
-          basename(xmlFile, ".xml"),
+          faturaOutputPath,
+          faturaData.header.faturaNo,
         );
+        console.log(`✓ Created: ${faturaOutputFileName}`);
       } else {
         console.log("  → Processing as generic XML");
         const parsedData = parseXmlFile(inputPath);
@@ -241,9 +248,8 @@ async function convertXmlToExcel(
           outputPath,
           basename(xmlFile, ".xml"),
         );
+        console.log(`✓ Created: ${outputFileName}`);
       }
-
-      console.log(`✓ Created: ${outputFileName}`);
     } catch (error) {
       console.error(
         `✗ Error processing ${xmlFile}:`,
