@@ -3,12 +3,12 @@ import { join, basename, extname, dirname } from "path";
 import { XMLParser } from "fast-xml-parser";
 import ExcelJS from "exceljs";
 import {
-  parseFaturaXml,
-  faturaProductToExcelRow,
-  getExcelHeaders,
-  faturaHeaderDetailsToExcelRows,
-  FaturaParseResult,
-} from "./parsers/fatura-parser.js";
+  parseWolvoxXml,
+  wolvoxProductToExcelRow,
+  getWolvoxExcelHeaders,
+  wolvoxHeaderDetailsToExcelRows,
+  WolvoxParseResult,
+} from "./parsers/wolvox-parser.js";
 
 /**
  * Reads all XML files from a directory
@@ -104,28 +104,21 @@ function isFaturaXml(xmlContent: string): boolean {
 }
 
 /**
- * Creates an Excel file from Fatura data
- * @param data - FaturaParseResult object
+ * Creates a Wolvox Stock Entry Excel file
+ * @param data - WolvoxParseResult object
  * @param outputPath - Path to save the Excel file
  * @param sheetName - Name of the sheet
  */
-async function createFaturaExcelFile(
-  data: FaturaParseResult,
+async function createWolvoxExcelFile(
+  data: WolvoxParseResult,
   outputPath: string,
-  sheetName: string = "Fatura",
+  sheetName: string = "Stok Giriş",
 ): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet(sheetName);
 
-  // Add header details
-  const headerRows = faturaHeaderDetailsToExcelRows(data.header);
-  headerRows.forEach((row) => worksheet.addRow(row));
-
-  // Add empty row
-  worksheet.addRow([]);
-
-  // Add product header
-  const headers = getExcelHeaders();
+  // Add product header (row 1)
+  const headers = getWolvoxExcelHeaders();
   const headerRow = worksheet.addRow(headers);
 
   // Style header row
@@ -138,17 +131,27 @@ async function createFaturaExcelFile(
 
   // Add product rows
   data.products.forEach((product) => {
-    const row = faturaProductToExcelRow(product);
+    const row = wolvoxProductToExcelRow(product);
     worksheet.addRow(row);
   });
 
-  // Auto-fit columns
+  // Auto-fit columns with minimum width to prevent 0 width in Excel
   worksheet.columns.forEach((column, index) => {
     if (column.values) {
-      const maxLength = Math.max(
-        ...column.values.map((value: any) => String(value).length),
+      const nonEmptyValues = column.values.filter(
+        (value: any) => value !== null && value !== undefined && value !== ''
       );
-      column.width = Math.min(maxLength + 2, 50);
+
+      if (nonEmptyValues.length > 0) {
+        const maxLength = Math.max(
+          ...nonEmptyValues.map((value: any) => String(value).length),
+        );
+        // Set width with minimum of 8 characters to prevent 0 width
+        column.width = Math.max(Math.min(maxLength + 2, 50), 8);
+      } else {
+        // Set minimum width for empty columns (8 characters)
+        column.width = 8;
+      }
     }
   });
 
@@ -219,26 +222,27 @@ async function convertXmlToExcel(
       // Read XML content
       const xmlContent = readFileSync(inputPath, "utf-8");
 
-      // Check if it's a Fatura XML
+      // Check if it's a Fatura XML and process as Wolvox
       if (isFaturaXml(xmlContent)) {
         console.log("  → Detected as Fatura XML");
-        const faturaData = parseFaturaXml(xmlContent);
-        console.log(`  → Found ${faturaData.products.length} product(s)`);
+        console.log("  → Processing as Wolvox Stock Entry");
+        const wolvoxData = parseWolvoxXml(xmlContent);
+        console.log(`  → Found ${wolvoxData.products.length} product(s)`);
         console.log(
-          `  → Total: ${faturaData.header.genelToplam} ${faturaData.header.doviz}`,
+          `  → Total: ${wolvoxData.header.genelToplam} ${wolvoxData.header.doviz}`,
         );
 
-        // Generate output filename: {Ünvan}-{faturaNo}.xlsx
-        const unvanFirstWord = faturaData.header.unvan.split(' ')[0];
-        const faturaOutputFileName = `${unvanFirstWord}-${faturaData.header.faturaNo}.xlsx`;
-        const faturaOutputPath = join(outputDir, faturaOutputFileName);
+        // Generate output filename: {FirstWordOfUnvan}-{FaturaNo}.xlsx
+        const unvanFirstWord = wolvoxData.header.unvan.split(' ')[0];
+        const wolvoxOutputFileName = `${unvanFirstWord}-${wolvoxData.header.faturaNo}.xlsx`;
+        const wolvoxOutputPath = join(outputDir, wolvoxOutputFileName);
 
-        await createFaturaExcelFile(
-          faturaData,
-          faturaOutputPath,
-          faturaData.header.faturaNo,
+        await createWolvoxExcelFile(
+          wolvoxData,
+          wolvoxOutputPath,
+          wolvoxData.header.faturaNo,
         );
-        console.log(`✓ Created: ${faturaOutputFileName}`);
+        console.log(`✓ Created: ${wolvoxOutputFileName}`);
       } else {
         console.log("  → Processing as generic XML");
         const parsedData = parseXmlFile(inputPath);
@@ -271,6 +275,7 @@ const outputDir = join(appDir, "excelDosyaları");
 console.log(`Current directory: ${appDir}`);
 console.log(`Input directory: ${inputDir}`);
 console.log(`Output directory: ${outputDir}`);
+console.log(`Format: WOLVOX Stock Entry`);
 
 convertXmlToExcel(inputDir, outputDir)
   .catch((error) => {

@@ -1,10 +1,15 @@
-# XML to Excel Converter
+# XML to Wolvox Excel Converter
 
-Converts XML files from `xmlDosyaları` directory to Excel files in `excelDosyaları` directory.
+Converts UBL e-Fatura XML files to Wolvox 26 Stock Entry Excel format.
 
 **Features:**
-- ✅ Generic XML to Excel conversion
-- ✅ **Specialized Fatura (E-Invoice) parser** with product list extraction
+- ✅ **Wolvox 26 Stock Entry parser** for Turkish warehouse management
+- ✅ Automatic Turkish character normalization (İ→I, Ş→S, Ç→C, Ö→O, Ü→U, Ğ→G)
+- ✅ Uppercase product names
+- ✅ Fixed A-T column layout (Wolvox standard)
+- ✅ Unit code conversion (NIU/C62/C262→ADET, BX/PA→KUTU)
+- ✅ Compatible with Microsoft Excel, LibreOffice, Google Sheets
+- ✅ Auto-fit column widths with minimum width (8 chars) for Excel compatibility
 - ✅ Modular and maintainable code structure
 - ✅ TypeScript support with full type safety
 - ✅ Built with Bun.js for optimal performance
@@ -41,13 +46,13 @@ bun run compile  # Compiles for current platform
 # 1. Download or copy the executable
 ./xml-to-excel  # or xml-to-excel.exe on Windows
 
-# 2. Put XML files in xmlDosyaları folder
+# 2. Put UBL e-Fatura XML files in xmlDosyaları folder
 # (folder is auto-created if it doesn't exist)
 
-# 3. Run the executable again
+# 3. Run the executable
 ./xml-to-excel
 
-# 4. Excel files appear in excelDosyaları folder
+# 4. Wolvox-compatible Excel files appear in excelDosyaları folder
 ```
 
 ### For Developers
@@ -199,100 +204,97 @@ xmlToExcel/
 
 ## Features
 
-### 1. Generic XML Conversion
+### Wolvox 26 Stock Entry Parser
 
-Automatically converts any XML file to Excel format:
+Specialized parser for Wolvox 26 warehouse management system. Converts UBL e-invoices to Wolvox-compatible Stock Entry format:
 
-Given an XML file `xmlDosyaları/data.xml`:
-```xml
-<root>
-  <item>
-    <name>Item 1</name>
-    <value>100</value>
-  </item>
-  <item>
-    <name>Item 2</name>
-    <value>200</value>
-  </item>
-</root>
+**Features:**
+- ✅ Turkish character normalization (İ→I, Ş→S, Ç→C, Ö→O, Ü→U, Ğ→G)
+- ✅ Product names converted to UPPERCASE
+- ✅ Fixed A-T column layout (Wolvox standard)
+- ✅ Automatic KDV rate extraction
+- ✅ Barcode extraction from AdditionalItemIdentification
+
+**Usage:**
+```bash
+# Run the application
+./xml-to-excel
+
+# Or for development
+bun run dev
 ```
 
-This will create `excelDosyaları/data.xlsx` with the following structure:
-
-| name | value |
-|------|-------|
-| Item 1 | 100 |
-| Item 2 | 200 |
-
-### 2. Fatura (E-Invoice) Parser
-
-Specialized parser for Turkish e-invoice format. Automatically detects and parses:
-
-**Extracted Information:**
-- Fatura başlık bilgileri (Fatura No, Tarih, VKN/TCKN, Ünvan, Adres)
-- Tüm ürün satırları (Ürün adı, kodları, miktar, fiyatlar)
-- KDV bilgileri (oranlar, tutarlar)
-- Toplam tutarlar
-
-**Excel Output Structure:**
-
-⚠️ **Not:** Aşağıdaki tüm veriler örnek/kurgusal verilerdir, gerçek bilgiler değildir.
-⚠️ **Note:** All data below is example/fictional data, not real information.
+**Column Mapping (A-T):**
+| A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Sıra | Fatura no | Tarih | Ürün Barkodu | Stok Adı | Stok Kodu | Ürün Miktarı | Ürün Birimi | Birim Fiyatı | Mal Hizmet Tutarı | | Marka | Ürün Durumu | KDV Oranı | | İZLEME TİPİ | | | | Varsayılan Depo |
 
 **Header Section:**
-- Fatura No: [FATURA NO]
-- Tarih: [TARİH SAAT]
+- FATURA NO: [FATURA NO]
+- TARİH: [TARİH] | SAAT: [SAAT]
+- ÜNVAN: [FİRMA ADI]
 - VKN/TCKN: [VKN/TCKN]
-- Ünvan: [FİRMA ADI]
-- Adres: [ADRES]
-- Matrah: [MATRAH] TRY
-- KDV: [KDV TUTARI] TRY
-- GENEL TOPLAM: [GENEL TOPLAM] TRY
+- GENEL TOPLAM: [GENEL TOPLAM] [DÖVİZ]
 
-**Products Table:**
-| Fatura No | Tarih | Satır No | Ürün Adı | Ürün Kodu | Satıcı Ürün Kodu | Alıcı Ürün Kodu | Miktar | Birim | Birim Fiyat | Kalem Tutarı | KDV % | KDV Tutarı |
-|-----------|-------|----------|-----------|-----------|-----------------|----------------|--------|-------|-------------|--------------|-------|------------|
-| [FATURA NO] | [TARİH] | [SATIR NO] | [ÜRÜN ADI] | [ÜRÜN KODU] | [SATICI ÜRÜN KODU] | [ALICI ÜRÜN KODU] | [MİKTAR] | [BİRİM] | [BİRİM FİYAT] | [KALEM TUTARI] | [KDV %] | [KDV TUTARI] |
-| ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
+**Products Table (Key Fields):**
+| Sıra | Fatura no | Tarih | Ürün Barkodu | Stok Adı | Stok Kodu | Ürün Miktarı | Ürün Birimi | Birim Fiyatı | Mal Hizmet Tutarı | Marka | Ürün Durumu | KDV Oranı | Varsayılan Depo |
+|------|-----------|-------|--------------|----------|-----------|--------------|--------------|--------------|-------------------|-------|-------------|-----------|----------------|
+| [1, 2, 3...] | [FATURA NO] | [TARİH] | [BARKOD] | [ÜRÜN ADI*] | [ÜRÜN KODU] | [MİKTAR] | [BİRİM] | [BİRİM FİYATI] | [MAL HİZMET TUTARI] | | 1 | [KDV %] | MDEPO |
+
+*Product names are automatically converted to UPPERCASE with Turkish character normalization
+
+**Turkish Character Conversion:**
+- İ → I
+- Ş → S
+- Ç → C
+- Ö → O
+- Ü → U
+- Ğ → G
+
+**Unit Code Conversion (H Sütunu):**
+| XML UnitCode | Excel Birim |
+|--------------|-------------|
+| NIU | ADET |
+| C62 | ADET |
+| C262 | ADET |
+| BX | KUTU |
+| PA | KUTU |
 
 ## Parser Module
 
-**File:** `src/parsers/fatura-parser.ts`
+**File:**
+- `src/parsers/wolvox-parser.ts` - Wolvox 26 Stock Entry parser
 
 **Exported Functions:**
-- `parseFaturaXml(xmlContent: string): FaturaParseResult` - Parse fatura XML
-- `faturaProductToExcelRow(product: FaturaProduct): any[]` - Convert product to Excel row
-- `getExcelHeaders(): string[]` - Get Excel headers
-- `faturaHeaderDetailsToExcelRows(header: FaturaHeader): any[][]` - Convert header to Excel rows
+- `parseWolvoxXml(xmlContent: string): WolvoxParseResult` - Parse UBL XML for Wolvox
+- `wolvoxProductToExcelRow(product: WolvoxProduct): any[]` - Convert product to Wolvox Excel row
+- `getWolvoxExcelHeaders(): string[]` - Get Wolvox Excel headers (A-T columns)
+- `normalizeTurkishChars(text: string): string` - Turkish character normalization
+- `toUpperAndNormalize(text: string): string` - Convert to uppercase and normalize
+- `unitCodeToTurkish(unitCode: string): string` - Convert XML UnitCode to Turkish unit
 
 **TypeScript Interfaces:**
 ```typescript
-interface FaturaProduct {
+interface WolvoxProduct {
+  sira: number;
   faturaNo: string;
-  faturaTarih: string;
-  satirNo: number;
-  urunAdi: string;
-  urunKodu: string;
-  saticiUrunKodu: string;
-  aliciUrunKodu: string;
-  miktar: number;
-  birim: string;
+  tarih: string;
+  urunBarkodu: string;
+  stokAdi: string;
+  stokKodu: string;
+  urunMiktari: number;
+  urunBirimi: string;
   birimFiyat: number;
-  kalemTutari: number;
-  kdvOran: number;
-  kdvTutari: number;
-  toplamTutar: number;
+  malHizmetTutari: number;
+  kdvOrani: number;
 }
 
-interface FaturaHeader {
+interface WolvoxHeader {
   faturaNo: string;
   tarih: string;
   saat: string;
-  vknTckn: string;
   unvan: string;
-  adres: string;
-  toplamMatrah: number;
-  toplamKdv: number;
+  vknTckn: string;
   genelToplam: number;
   doviz: string;
 }
@@ -339,7 +341,7 @@ A: No! The compiled binary is self-contained and includes everything it needs.
 A: Yes! Once you have the executable, no internet connection is required.
 
 **Q: What file formats are supported?**
-A: Only XML files (`.xml` extension) are processed automatically.
+A: Only UBL e-Fatura XML files (`.xml` extension) are processed automatically.
 
 **Q: Can I customize input/output directories?**
 A: Currently, app uses `xmlDosyaları` for input and `excelDosyaları` for output. These folders are auto-created.
@@ -350,6 +352,9 @@ A: The app displays "No XML files found" and exits gracefully.
 **Q: Can I process multiple XML files at once?**
 A: Yes! All `.xml` files in `xmlDosyaları` folder are processed in a single run.
 
+**Q: What Excel format is generated?**
+A: Wolvox 26 Stock Entry format with A-T column layout, optimized for Turkish warehouse management.
+
 **Q: What's the difference between `bun run build` and `bun run compile`?**
 A:
 - `build`: Creates a JavaScript bundle that requires Bun or Node.js to run
@@ -357,8 +362,8 @@ A:
 
 **Q: Can I build Windows executable from macOS (or vice versa)?**
 A: **No, not directly.** Bun doesn't support true cross-compilation between different operating systems. You have two options:
-   1. **Use GitHub Actions** (Recommended) - Push to GitHub, create a tag, and it automatically builds for ALL platforms
-   2. **Build on target platform** - Run the build commands on a Windows machine to get a Windows executable
+    1. **Use GitHub Actions** (Recommended) - Push to GitHub, create a tag, and it automatically builds for ALL platforms
+    2. **Build on target platform** - Run the build commands on a Windows machine to get a Windows executable
 
 **Q: How do I get executables for all platforms without having those machines?**
 A: Use the GitHub Actions workflow included in this project:
@@ -396,4 +401,11 @@ chmod +x xml-to-excel
 
 ## Version History
 
+- **v2.0.1** - Added Ürün Miktarı column (G)
+- **v2.0.0** - Wolvox-only format (removed Fatura format, always produces Wolvox-compatible Excel)
+- **v1.1.4** - Fixed column width issue in Microsoft Excel (minimum width: 8 chars)
+- **v1.1.3** - Added Birim Fiyatı and Mal Hizmet Tutarı columns (I, J)
+- **v1.1.2** - Fixed Stok Kodu to use SellersItemIdentification
+- **v1.1.1** - Added Sıra, Fatura no, Tarih columns (A, B, C)
+- **v1.1.0** - Wolvox 26 Stock Entry parser support
 - **v1.0.0** - Initial release with Fatura parser support

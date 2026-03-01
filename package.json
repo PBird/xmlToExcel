@@ -1,7 +1,7 @@
 {
   "name": "xml-to-excel-converter",
-  "version": "1.0.9",
-  "description": "Converts XML files from xmlDosyaları directory to Excel files in excelDosyaları directory",
+  "version": "2.0.1",
+  "description": "Converts UBL e-Fatura XML files to Wolvox 26 Stock Entry Excel format",
   "type": "module",
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target bun --format esm",
